@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Why Do Some GenAI Pilots Never Scale?</title>
+<meta name="description" content="An exploratory scrollytelling inspired by a class discussion on Markov Chains and Monte Carlo methods."/>
+<style>
+:root{
+  --bg:#f7f3eb;--paper:#fffdf8;--panel:#fff;--ink:#1f2b36;--muted:#657586;
+  --line:#dce3e8;--green:#2f6f5f;--green2:#4f8b7a;--amber:#c58a2e;
+  --red:#b94a48;--blue:#4779a8;--purple:#7561a8;--shadow:0 20px 58px -38px rgba(25,36,48,.5)
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;scroll-behavior:smooth}
+.hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;padding:0 7vw;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;right:-15vw;top:-12vh;width:60vw;height:60vw;border-radius:50%;background:radial-gradient(circle,rgba(47,111,95,.15),transparent 64%)}
+.hero:after{content:"";position:absolute;left:-20vw;bottom:-24vh;width:62vw;height:62vw;border-radius:50%;background:radial-gradient(circle,rgba(197,138,46,.12),transparent 64%)}
+.eyebrow{font:800 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+h1{font-size:clamp(2.45rem,6.4vw,5rem);max-width:13ch;line-height:1.02;letter-spacing:-.055em;margin:.32em 0 .25em}
+.subtitle{font-size:clamp(1.03rem,2vw,1.34rem);line-height:1.62;color:#4b5c6d;max-width:68ch}
+.small{font-size:.94rem;color:var(--muted);line-height:1.65;max-width:72ch}
+.scrollcue{position:absolute;bottom:4vh;left:7vw;color:#8d9aa5;font:12px ui-monospace,monospace;letter-spacing:.12em}
+.section{max-width:1120px;margin:auto;padding:8vh 7vw}
+.section h2{font-size:clamp(1.75rem,4vw,2.75rem);line-height:1.08;letter-spacing:-.035em;margin:.35em 0 .55em}
+.lede{font-size:1.04rem;line-height:1.75;color:#4e6172;max-width:78ch}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:2em}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:19px;padding:24px 26px;box-shadow:var(--shadow)}
+.card.wide{grid-column:1/-1}
+.card h3{font-size:1.08rem;margin:.2em 0 .65em}
+.card p,.card li{font-size:.96rem;line-height:1.68;color:#526475}
+.tag{font:850 .68rem ui-monospace,monospace;text-transform:uppercase;letter-spacing:.16em;color:var(--green);margin-bottom:.65em}
+.callout{background:#eef4ef;border:1px solid #cfe0d7;border-radius:20px;padding:24px 26px;margin-top:22px;color:#2c5148}
+.callout strong{display:block;font-size:1.05rem;margin-bottom:.5em}
+.formula{font: .88rem ui-monospace,monospace;background:#eef4ef;border:1px solid #d6e3dc;border-radius:12px;padding:13px 14px;color:#254d42;line-height:1.55}
+.flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:18px 0}
+.state{padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:800;font-size:.8rem}
+.state.main{background:var(--amber);border-color:var(--amber);color:#fff}
+.state.good{background:var(--green);border-color:var(--green);color:#fff}
+.state.bad{background:var(--red);border-color:var(--red);color:#fff}
+.arrow{color:#98a6b1;font-weight:850}
+.stage-list{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:24px}
+.stage{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.stage strong{display:block;font-size:.94rem;margin-bottom:.35em}
+.stage span{display:block;font-size:.8rem;line-height:1.5;color:var(--muted)}
+.explore{background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8vh 5vw}
+.explore-wrap{max-width:1180px;margin:auto}
+.tabs input{position:absolute;opacity:0}
+.labels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.labels label{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;cursor:pointer;box-shadow:var(--shadow);transition:.2s}
+.labels label:hover{transform:translateY(-2px);border-color:var(--green)}
+.labels strong{display:block;margin-bottom:.4em}
+.labels span{font-size:.82rem;line-height:1.5;color:var(--muted)}
+#a:checked~.labels label[for="a"],#b:checked~.labels label[for="b"],#c:checked~.labels label[for="c"]{background:#edf5f1;border-color:#bdd6ca;color:#214b40}
+.panel{display:none;margin-top:20px;background:#fff;border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}
+#a:checked~.panels .pa,#b:checked~.panels .pb,#c:checked~.panels .pc{display:block}
+.panel-grid{display:grid;grid-template-columns:.9fr 1.1fr}
+.path{padding:28px;background:#fbfaf6;border-right:1px solid var(--line)}
+.explain{padding:28px}
+.path h3,.explain h3{margin:.1em 0 .65em}
+.explain p,.explain li{font-size:.96rem;color:#526475;line-height:1.68}
+.lesson{margin-top:18px;padding:15px;border-radius:14px;background:#f4f7f5;border:1px solid var(--line);font-size:.9rem;line-height:1.6;color:#405365}
+.paper{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 24px;box-shadow:var(--shadow);margin-top:16px}
+.paper h3{font-size:1.08rem;margin:.2em 0 .3em}
+.paper .authors{font-size:.88rem;font-weight:750;color:#405365}
+.paper p{font-size:.94rem;line-height:1.65;color:#526475}
+.paper .support{border-left:3px solid var(--green);padding-left:14px}
+.outro{min-height:72vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:8vh 7vw}
+.outro div{max-width:850px}
+.outro h2{font-size:clamp(2rem,5vw,3.7rem);line-height:1.08;letter-spacing:-.04em}
+.outro p{color:#4e6071;line-height:1.75;font-size:1.05rem}
+footer{border-top:1px solid var(--line);padding:5vh 7vw;color:var(--muted);font-size:.78rem;line-height:1.65}
+@media(max-width:980px){.cards,.stage-list,.labels,.panel-grid{grid-template-columns:1fr}.path{border-right:0;border-bottom:1px solid var(--line)}}
+@media(max-width:620px){.hero,.section,.outro{padding-left:6vw;padding-right:6vw}.explore{padding-left:4vw;padding-right:4vw}}
+</style>
+</head>
+<body>
+<section class="hero">
+  <div class="eyebrow">Inspired by a class discussion</div>
+  <h1>Why Do Some GenAI Pilots Never Scale?</h1>
+  <p class="subtitle">An exploratory scrollytelling inspired by our discussion of Markov Chains, organizational adoption, and Monte Carlo methods.</p>
+  <p class="small">This is not a prediction tool. It is a visual thought experiment about what can happen after a successful GenAI pilot.</p>
+  <div class="scrollcue">↓ scroll</div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">The mystery</div>
+  <h2>The pilot worked. Six months later, nothing changed.</h2>
+  <p class="lede">The demonstration was successful. The model produced useful outputs. Leaders were interested. But the workflow was never redesigned, no team owned implementation, employees remained unsure, and the pilot slowly disappeared.</p>
+  <div class="callout"><strong>The question is not only whether GenAI works.</strong> The more interesting question is what happens between a successful experiment and everyday organizational use.</div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Markov in simple terms</div>
+  <h2>Think in states, not in promises.</h2>
+  <p class="lede">A Markov Chain gives us a simple way to think about movement. A system is in one state now, and several next states may be possible. It does not tell us why a transition happens by itself, but it helps us organize the possible pathways.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="tag">Current state</div>
+      <h3>The organization has a successful pilot.</h3>
+      <div class="flow"><span class="state main">Pilot</span></div>
+      <p>The pilot is not the finish line. It is only the starting point for the next organizational decision.</p>
+    </div>
+    <div class="card">
+      <div class="tag">Possible next states</div>
+      <div class="flow"><span class="state">Assimilation</span><span class="state">Department Use</span><span class="state bad">Stalled</span><span class="state bad">Abandoned</span></div>
+      <p>The same technical result can lead to very different organizational futures.</p>
+    </div>
+    <div class="card wide">
+      <div class="tag">History</div>
+      <h3>Andrey A. Markov</h3>
+      <p>Markov studied dependent sequences in the early twentieth century. His analysis of vowel and consonant patterns in Pushkin's <em>Eugene Onegin</em> became a well-known illustration of transitions between states. Here, that same intuition is used only as an exploratory lens for organizational adoption.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">The missing middle</div>
+  <h2>Organizations can acquire technology without assimilating it.</h2>
+  <p class="lede">A useful idea from organizational adoption literature is that adoption happens in stages. Buying, building, or piloting a technology does not mean it has been assimilated into work or integrated into the organization.</p>
+  <div class="stage-list">
+    <div class="stage"><strong>Initiation</strong><span>The organization identifies a problem or opportunity.</span></div>
+    <div class="stage"><strong>Acquisition</strong><span>The organization selects or builds the technology.</span></div>
+    <div class="stage"><strong>Pilot</strong><span>The idea is tested in a limited context.</span></div>
+    <div class="stage"><strong>Assimilation</strong><span>Teams learn, adapt processes, and begin regular use.</span></div>
+    <div class="stage"><strong>Integration</strong><span>The technology becomes part of workflows, governance, roles, and measures.</span></div>
+  </div>
+  <div class="callout"><strong>A possible answer</strong> Many GenAI pilots stop after acquisition and experimentation. They never achieve assimilation and integration.</div>
+</section>
+
+<section class="explore">
+  <div class="explore-wrap">
+    <div class="eyebrow">Explore the next state</div>
+    <h2>What happens after the pilot?</h2>
+    <p class="lede">Choose how the organization responds. Each choice reveals a different pathway. This is a thought experiment, not a forecast.</p>
+    <div class="tabs">
+      <input checked type="radio" name="path" id="a"/>
+      <input type="radio" name="path" id="b"/>
+      <input type="radio" name="path" id="c"/>
+      <div class="labels">
+        <label for="a"><strong>Focus only on the technology</strong><span>The model works, but ownership, trust, and process change are ignored.</span></label>
+        <label for="b"><strong>Support one department</strong><span>One team adopts the tool, but the organization remains fragmented.</span></label>
+        <label for="c"><strong>Redesign how work is done</strong><span>Governance, roles, training, and cross-team learning are developed.</span></label>
+      </div>
+      <div class="panels">
+        <article class="panel pa">
+          <div class="panel-grid">
+            <div class="path">
+              <div class="tag">Pathway A</div>
+              <h3>Technical success, organizational stall</h3>
+              <div class="flow"><span class="state main">Pilot</span><span class="arrow">→</span><span class="state bad">Stalled</span><span class="arrow">→</span><span class="state bad">Abandoned</span></div>
+            </div>
+            <div class="explain">
+              <h3>Why it happens</h3>
+              <p>The organization treats the pilot as a model-development project. It does not clarify who owns implementation, how work should change, or how employees will be supported.</p>
+              <ul><li>Adoption thresholds stay high.</li><li>Knowledge remains segregated inside the pilot team.</li><li>Diffusion and cross-team connectivity remain weak.</li><li>Governance and accountability remain unclear.</li></ul>
+              <div class="lesson"><strong>Lesson:</strong> A technically successful pilot can still fail to become an organizational capability.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel pb">
+          <div class="panel-grid">
+            <div class="path">
+              <div class="tag">Pathway B</div>
+              <h3>Local adoption, limited spread</h3>
+              <div class="flow"><span class="state main">Pilot</span><span class="arrow">→</span><span class="state">Department Use</span><span class="arrow">→</span><span class="state bad">Isolated Capability</span></div>
+            </div>
+            <div class="explain">
+              <h3>Why it happens</h3>
+              <p>One department sees value and continues using the tool, but knowledge, workflows, and support do not move across organizational boundaries.</p>
+              <ul><li>Diffusion happens locally.</li><li>Expertise becomes segregated.</li><li>Percolation across teams never occurs.</li><li>No organizational tipping point is reached.</li></ul>
+              <div class="lesson"><strong>Lesson:</strong> Local adoption is progress, but it is not yet enterprise integration.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel pc">
+          <div class="panel-grid">
+            <div class="path">
+              <div class="tag">Pathway C</div>
+              <h3>The pilot becomes part of work</h3>
+              <div class="flow"><span class="state main">Pilot</span><span class="arrow">→</span><span class="state">Assimilation</span><span class="arrow">→</span><span class="state good">Integration</span></div>
+            </div>
+            <div class="explain">
+              <h3>Why it happens</h3>
+              <p>The organization treats adoption as a work-design challenge. It establishes ownership, trains users, clarifies governance, connects teams, and embeds the tool into operating routines.</p>
+              <ul><li>Thresholds fall as confidence grows.</li><li>Knowledge diffuses through champions and shared practices.</li><li>Segregated capability begins to connect across teams.</li><li>Percolation creates conditions for a tipping point.</li></ul>
+              <div class="lesson"><strong>Lesson:</strong> Scaling happens when the organization changes—not simply when the model performs well.</div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Why the pathways differ</div>
+  <h2>Five supporting models help explain the transition.</h2>
+  <p class="lede">Markov helps us describe the possible states. These supporting ideas help explain why an organization moves toward assimilation and integration—or remains stalled and isolated.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="tag">Threshold Theory</div>
+      <h3>When are people ready to adopt?</h3>
+      <p>Employees and teams may wait until they see enough usefulness, trust, support, social proof, or managerial encouragement. If thresholds remain high, the pilot stays inside the original team.</p>
+      <div class="lesson"><strong>Effect on the pathway:</strong> High thresholds make Pilot → Assimilation less likely.</div>
+    </div>
+
+    <div class="card">
+      <div class="tag">Segregation Theory</div>
+      <h3>Why does capability become trapped?</h3>
+      <p>AI knowledge may cluster among specialists, innovators, or one business unit. The pilot appears successful, but the wider organization remains separated from the capability.</p>
+      <div class="lesson"><strong>Effect on the pathway:</strong> Segregation encourages Pilot → Isolated Capability.</div>
+    </div>
+
+    <div class="card">
+      <div class="tag">Diffusion</div>
+      <h3>How does knowledge spread?</h3>
+      <p>Prompts, workflows, examples, confidence, and lessons must move through formal and informal networks. Weak diffusion means the pilot remains a demonstration rather than a shared practice.</p>
+      <div class="lesson"><strong>Effect on the pathway:</strong> Strong diffusion supports Pilot → Assimilation.</div>
+    </div>
+
+    <div class="card">
+      <div class="tag">Percolation</div>
+      <h3>Do the adoption clusters connect?</h3>
+      <p>Local pockets of GenAI use do not become enterprise capability unless enough links exist across teams, functions, workflows, and governance structures.</p>
+      <div class="lesson"><strong>Effect on the pathway:</strong> Weak connectivity blocks Assimilation → Integration.</div>
+    </div>
+
+    <div class="card wide">
+      <div class="tag">Tipping Point</div>
+      <h3>When does use become self-reinforcing?</h3>
+      <p>A tipping point may occur when enough people, teams, use cases, and support structures are connected. After that point, adoption is no longer driven only by the pilot team; it begins to feel like an organizational norm.</p>
+      <div class="lesson"><strong>Effect on the pathway:</strong> Connected adoption can move the organization from scattered use toward integration.</div>
+    </div>
+  </div>
+
+  <div class="callout"><strong>How the pieces fit together</strong> Markov describes the states and possible pathways. Thresholds, segregation, diffusion, percolation, and tipping points explain why one pathway becomes more plausible than another.</div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Where Monte Carlo fits</div>
+  <h2>One pathway is only one possible story.</h2>
+  <p class="lede">Monte Carlo introduces the idea of exploring uncertainty through repeated hypothetical sampling. It does not provide evidence by itself, and it should not create the impression that imagined trials are real organizations.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="tag">What it contributes</div>
+      <h3>Thinking beyond one pathway</h3>
+      <p>A single pathway shows what could happen. Monte Carlo reminds us that uncertain systems may follow many possible paths, depending on the assumptions built into the model.</p>
+    </div>
+    <div class="card">
+      <div class="tag">Why there is no simulation here</div>
+      <h3>The assumptions matter more than the number of trials.</h3>
+      <p>Without observed or defensible transition probabilities, repeated sampling would only reproduce our assumptions. This page therefore focuses on understanding the possible organizational pathways first.</p>
+    </div>
+    <div class="card wide">
+      <div class="tag">History</div>
+      <h3>Nicholas Metropolis and Stanislaw Ulam</h3>
+      <p>Their 1949 paper, <em>The Monte Carlo Method</em>, described the use of random sampling for difficult mathematical and physical problems. Here, it serves only as inspiration for thinking about multiple possible futures—not as a forecasting claim.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Inspired by these works</div>
+  <h2>Three ideas behind the story</h2>
+  <p class="lede">These works are shown as inspiration, not as proof that this exact GenAI model already exists.</p>
+
+  <article class="paper">
+    <div class="tag">Technology transitions</div>
+    <h3>Markov Models of Policy Support for Technology Transitions</h3>
+    <div class="authors">Max T. Brozynski and Benjamin D. Leibowicz</div>
+    <p class="support">This work inspired the idea of representing technology change as movement through uncertain states. Our page applies that intuition lightly to the journey after a GenAI pilot.</p>
+  </article>
+
+  <article class="paper">
+    <div class="tag">Organizational adoption</div>
+    <h3>A Model for the Adoption Process of Information System Security Innovations in Organisations: A Theoretical Perspective</h3>
+    <div class="authors">Mumtaz Abdul Hameed and Nalin Asanka Gamagedara Arachchilage</div>
+    <p class="support">This work inspired the distinction between acquiring an innovation and actually assimilating and integrating it into organizational use.</p>
+  </article>
+
+  <article class="paper">
+    <div class="tag">Uncertainty and repeated sampling</div>
+    <h3>The Monte Carlo Method</h3>
+    <div class="authors">Nicholas Metropolis and Stanislaw Ulam</div>
+    <p class="support">This work inspired the idea that uncertain processes can be explored through repeated hypothetical trials. In this page, that remains an explanatory concept rather than a numerical forecast.</p>
+  </article>
+</section>
+
+<section class="outro">
+  <div>
+    <div class="eyebrow">Answer</div>
+    <h2>Why do some GenAI pilots never scale?</h2>
+    <p>Because proving that GenAI works is only one step. Scaling requires assimilation and integration: people must understand and trust the tool, workflows must change, ownership and governance must become clear, and knowledge must move beyond the pilot team. The pilot does not become capability until the organization changes with it.</p>
+  </div>
+</section>
+
+<footer>
+  Exploratory note: this scrollytelling was inspired by a class discussion and selected literature. It is not presented as a validated adoption model or a forecasting system.
+</footer>
+</body>
+</html>
