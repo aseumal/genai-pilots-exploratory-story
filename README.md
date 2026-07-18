@@ -2,6 +2,8 @@
 
 An exploratory scrollytelling inspired by a class discussion on Markov Chains, organizational adoption, and Monte Carlo methods.
 
+![Screenshot of the hero section](screenshots/hero.png)
+
 ## Core Story
 
 A successful pilot is only one organizational state. Enterprise adoption requires assimilation and integration.
