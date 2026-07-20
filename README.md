@@ -2,6 +2,8 @@
 
 An exploratory scrollytelling inspired by a class discussion on Markov Chains, organizational adoption, and Monte Carlo methods.
 
+[→ View the live scrollytelling page](https://aseumal.github.io/genai-pilots-exploratory-story/)
+
 ![Screenshot of the hero section](screenshots/hero.png)
 
 ## Core Story
@@ -45,3 +47,7 @@ https://aseumal.github.io/genai-pilots-exploratory-story/
 ## Description
 
 Exploratory scrollytelling on why successful GenAI pilots may stall, remain isolated, or become integrated organizational capability.
+
+---
+
+*Part of [Emergence Lab](https://github.com/aseumal/emergence-lab) — Anthony Seumal's research identity, PhD Scholar in Data Science, Asian Institute of Management.*
